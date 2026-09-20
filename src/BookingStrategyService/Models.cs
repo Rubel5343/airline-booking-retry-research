@@ -27,11 +27,9 @@ public sealed record BookingExecutionResult(
     long ResolutionMs,
     string? ErrorCode = null);
 
-public sealed record ExperimentSummary(
+public sealed record ClientExperimentSummary(
     string Strategy,
     long LogicalBookings,
-    long DuplicateLogicalBookings,
-    double DuplicateRatePct,
     long UnresolvedBookings,
     double AvgResolutionMs,
     double P50ResolutionMs,

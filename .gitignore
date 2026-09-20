@@ -5,5 +5,5 @@
 *.user
 *.suo
 .env
-results/*.csv
-results/*.json
+results/**
+!results/.gitkeep

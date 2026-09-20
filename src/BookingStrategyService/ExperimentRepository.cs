@@ -99,38 +99,12 @@ public sealed class ExperimentRepository(NpgsqlDataSource dataSource)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ExperimentSummary>> GetSummaryAsync(Guid runId, CancellationToken ct)
+    public async Task<IReadOnlyList<ClientExperimentSummary>> GetSummaryAsync(Guid runId, CancellationToken ct)
     {
         await using var cmd = dataSource.CreateCommand("""
-            WITH ground_truth AS (
-                SELECT experiment_run_id, logical_booking_id, COUNT(*) AS supplier_order_count
-                FROM simulator.supplier_orders
-                WHERE experiment_run_id = $1
-                GROUP BY experiment_run_id, logical_booking_id
-            ),
-            base AS (
-                SELECT
-                    a.strategy,
-                    a.state,
-                    a.create_call_count,
-                    a.retrieve_call_count,
-                    a.resolution_ms,
-                    COALESCE(g.supplier_order_count, 0) AS supplier_order_count
-                FROM research.booking_attempts a
-                LEFT JOIN ground_truth g
-                  ON g.experiment_run_id = a.experiment_run_id
-                 AND g.logical_booking_id = a.logical_booking_id
-                WHERE a.experiment_run_id = $1
-                  AND a.state <> 'SYSTEM_ERROR'
-            )
             SELECT
                 strategy,
                 COUNT(*)::bigint AS logical_bookings,
-                COUNT(*) FILTER (WHERE supplier_order_count > 1)::bigint AS duplicate_logical_bookings,
-                COALESCE(
-                    100.0 * COUNT(*) FILTER (WHERE supplier_order_count > 1) / NULLIF(COUNT(*), 0),
-                    0
-                )::double precision AS duplicate_rate_pct,
                 COUNT(*) FILTER (WHERE state = 'UNKNOWN')::bigint AS unresolved_bookings,
                 COALESCE(AVG(resolution_ms), 0)::double precision AS avg_resolution_ms,
                 COALESCE(percentile_cont(0.50) WITHIN GROUP (ORDER BY resolution_ms), 0)::double precision AS p50_resolution_ms,
@@ -139,29 +113,29 @@ public sealed class ExperimentRepository(NpgsqlDataSource dataSource)
                 COALESCE(AVG(create_call_count + retrieve_call_count), 0)::double precision AS avg_supplier_calls_per_booking,
                 COALESCE(AVG(create_call_count), 0)::double precision AS avg_create_calls,
                 COALESCE(AVG(retrieve_call_count), 0)::double precision AS avg_retrieve_calls
-            FROM base
+            FROM research.booking_attempts
+            WHERE experiment_run_id = $1
+              AND state <> 'SYSTEM_ERROR'
             GROUP BY strategy
             ORDER BY strategy
             """);
         cmd.Parameters.AddWithValue(runId);
 
-        var result = new List<ExperimentSummary>();
+        var result = new List<ClientExperimentSummary>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            result.Add(new ExperimentSummary(
+            result.Add(new ClientExperimentSummary(
                 Strategy: reader.GetString(0),
                 LogicalBookings: reader.GetInt64(1),
-                DuplicateLogicalBookings: reader.GetInt64(2),
-                DuplicateRatePct: reader.GetDouble(3),
-                UnresolvedBookings: reader.GetInt64(4),
-                AvgResolutionMs: reader.GetDouble(5),
-                P50ResolutionMs: reader.GetDouble(6),
-                P95ResolutionMs: reader.GetDouble(7),
-                P99ResolutionMs: reader.GetDouble(8),
-                AvgSupplierCallsPerBooking: reader.GetDouble(9),
-                AvgCreateCalls: reader.GetDouble(10),
-                AvgRetrieveCalls: reader.GetDouble(11)));
+                UnresolvedBookings: reader.GetInt64(2),
+                AvgResolutionMs: reader.GetDouble(3),
+                P50ResolutionMs: reader.GetDouble(4),
+                P95ResolutionMs: reader.GetDouble(5),
+                P99ResolutionMs: reader.GetDouble(6),
+                AvgSupplierCallsPerBooking: reader.GetDouble(7),
+                AvgCreateCalls: reader.GetDouble(8),
+                AvgRetrieveCalls: reader.GetDouble(9)));
         }
 
         return result;
