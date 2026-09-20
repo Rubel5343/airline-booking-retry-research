@@ -1,0 +1,86 @@
+name: protocol-v1.1-validation
+
+on:
+  push:
+    branches: ["protocol/v1.1-work"]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Static protocol checks
+        run: |
+          bash -n scripts/*.sh
+          python3 -m py_compile             scripts/fixed_cell_runner.py             scripts/validate_protocol_v11_matrix.py             analysis/power_planning.py             analysis/model_sanity.py
+          python3 analysis/model_sanity.py
+          python3 analysis/power_planning.py
+
+          if grep -R -n -E 'simulator\.|admin/ground-truth|ground[_ -]?truth' src/BookingStrategyService; then
+            echo "BookingStrategyService must not access simulator ground truth" >&2
+            exit 1
+          fi
+
+      - name: Restore and build
+        run: |
+          dotnet restore AirlineRetryResearch.sln
+          dotnet build AirlineRetryResearch.sln --configuration Release --no-restore
+
+      - name: Build and start stack
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name: Wait for services
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8080/health >/dev/null && curl -fsS http://localhost:8081/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs
+          exit 1
+
+      - name: Base ambiguity gate
+        run: bash scripts/ambiguity-smoke-test.sh
+
+      - name: Fixed pair and fault-cohort gate
+        run: bash scripts/fixed-pair-validation.sh
+
+      - name: Retrieve failure safety gate
+        run: bash scripts/retrieve-failure-safety-test.sh
+
+      - name: Reduced A-B-D matrix validation
+        env:
+          TOTAL_REQUESTS: "8"
+          VUS: "8"
+          GIT_COMMIT: ${{ github.sha }}
+        run: python3 scripts/validate_protocol_v11_matrix.py
+
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: protocol-v11-validation-${{ github.run_id }}
+          path: results/v11-validation/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Shutdown
+        if: always()
+        run: docker compose down -v
