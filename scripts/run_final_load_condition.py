@@ -29,7 +29,7 @@ for repetition in range(1, 6):
         "MAX_VUS": "500",
         "GRACEFUL_STOP": "30s",
         "STRATEGY_LABELS": "S1,S2,S3B3",
-        "PROTOCOL_VERSION": "v1.1",
+        "PROTOCOL_VERSION": "v1.1.1",
         "RUN_MODE": "paper-grade",
         "RESULTS_DIR": f"results/final/load/{condition_id}",
     })
