@@ -31,44 +31,50 @@ wait_for() {
 
 create_run() {
   local strategy=$1
+  local variant=$2
   python3 - "$strategy" "$SEED" "$SCENARIO" "$RATE" "$DURATION" <<'PY'     | curl -fsS -X POST "$BOOKING/experiment-runs"         -H 'Content-Type: application/json'         --data-binary @-     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
 import json, sys
 print(json.dumps({
-    "name": f"pilot-{sys.argv[1]}",
-    "randomSeed": int(sys.argv[2]),
+    "name": f"pilot-{sys.argv[2]}",
+    "randomSeed": int(sys.argv[3]),
     "config": {
-        "scenario": sys.argv[3],
-        "rate": int(sys.argv[4]),
-        "duration": sys.argv[5]
+        "strategy": sys.argv[1],
+        "variant": sys.argv[2],
+        "scenario": sys.argv[4],
+        "rate": int(sys.argv[5]),
+        "duration": sys.argv[6]
     }
 }))
 PY
 }
 
 run_strategy() {
-  local strategy=$1
-  local retrieve_attempts=$2
+  local label=$1
+  local strategy=$2
+  local retrieve_attempts=$3
 
   echo
-  echo "=== $strategy (retrieveAttempts=$retrieve_attempts) ==="
+  echo "=== $label / $strategy (retrieveAttempts=$retrieve_attempts) ==="
 
   curl -fsS -X PUT "$SUPPLIER/admin/config"     -H 'Content-Type: application/json'     --data-binary @"$SCENARIO" >/dev/null
 
   local run_id
-  run_id=$(create_run "$strategy")
+  run_id=$(create_run "$strategy" "$label")
   echo "runId=$run_id"
 
   docker compose --profile tools run --rm     -e BOOKING_URL=http://booking-strategy:8080     -e RUN_ID="$run_id"     -e STRATEGY="$strategy"     -e RATE="$RATE"     -e DURATION="$DURATION"     -e BOOKING_TIMEOUT_MS="$BOOKING_TIMEOUT_MS"     -e DELAYED_RETRY_MS="$DELAYED_RETRY_MS"     -e RETRIEVE_ATTEMPTS="$retrieve_attempts"     -e RETRIEVE_DELAY_MS="$RETRIEVE_DELAY_MS"     k6 run /scripts/booking.js
 
   curl -fsS -X POST "$BOOKING/experiment-runs/$run_id/complete" >/dev/null
-  echo "Summary:"
-  curl -fsS "$BOOKING/experiment-runs/$run_id/summary" | python3 -m json.tool
+  mkdir -p results
+  local summary_file="results/${label}-${run_id}.json"
+  curl -fsS "$BOOKING/experiment-runs/$run_id/summary" | tee "$summary_file" | python3 -m json.tool
+  echo "summaryFile=$summary_file"
 }
 
 wait_for "$SUPPLIER/health"
 wait_for "$BOOKING/health"
 
-run_strategy ImmediateBlindRetry 1
-run_strategy DelayedBlindRetry 1
-run_strategy RetrieveBeforeRetry 1
-run_strategy RetrieveBeforeRetry 3
+run_strategy S1 ImmediateBlindRetry 1
+run_strategy S2 DelayedBlindRetry 1
+run_strategy S3A RetrieveBeforeRetry 1
+run_strategy S3B RetrieveBeforeRetry 3
