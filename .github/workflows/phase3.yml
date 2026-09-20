@@ -1,0 +1,83 @@
+name: phase3-validation
+
+on:
+  push:
+    branches: ["experiment/phase3"]
+  workflow_dispatch:
+
+jobs:
+  paired-repeated-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Static validation
+        run: |
+          bash -n scripts/*.sh
+          python3 -m py_compile scripts/repeated-pilot.py analysis/summarize_pilot.py analysis/model_sanity.py
+          python3 analysis/model_sanity.py
+
+      - name: Restore and build
+        run: |
+          dotnet restore AirlineRetryResearch.sln
+          dotnet build AirlineRetryResearch.sln --configuration Release --no-restore
+
+      - name: Build and start stack
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name: Wait for services
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8080/health >/dev/null && curl -fsS http://localhost:8081/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs
+          exit 1
+
+      - name: Ambiguity smoke gate
+        run: bash scripts/ambiguity-smoke-test.sh
+
+      - name: Repeated randomized pilot
+        env:
+          REPETITIONS: "2"
+          BASE_SEED: "51000"
+          SCENARIO: configs/scenario-baseline.json
+          RATE: "5"
+          DURATION: "10s"
+          BOOKING_TIMEOUT_MS: "300"
+          DELAYED_RETRY_MS: "250"
+          RETRIEVE_DELAY_MS: "250"
+          GIT_COMMIT: ${{ github.sha }}
+        run: python3 scripts/repeated-pilot.py
+
+      - name: Aggregate repeated pilot
+        run: python3 analysis/summarize_pilot.py | tee results/aggregate-summary.pretty.json
+
+      - name: Upload Phase 3 validation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-validation-${{ github.run_id }}
+          path: results/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Shutdown
+        if: always()
+        run: docker compose down -v
