@@ -1,0 +1,13 @@
+{
+  "randomSeed": 12345,
+  "processingDelayMs": 700,
+  "processingJitterMs": 0,
+  "responseLossProbability": 0.0,
+  "definiteFailureProbability": 0.0,
+  "transientFailureProbability": 0.0,
+  "hiddenSuccessProbabilityOnResponseLoss": 1.0,
+  "visibilityDelayMs": 0,
+  "retrieveFailureProbability": 0.0,
+  "retrieveDelayMs": 10,
+  "responseLossHoldMs": 15000
+}
