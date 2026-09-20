@@ -13,6 +13,7 @@ public interface ISupplierClient
     Task<SupplierRetrieveResult> RetrieveAsync(
         Guid experimentRunId,
         string clientReference,
+        string? faultCohort,
         TimeSpan timeout,
         CancellationToken ct);
 }
@@ -60,6 +61,7 @@ public sealed class SupplierClient(HttpClient httpClient) : ISupplierClient
     public async Task<SupplierRetrieveResult> RetrieveAsync(
         Guid experimentRunId,
         string clientReference,
+        string? faultCohort,
         TimeSpan timeout,
         CancellationToken ct)
     {
@@ -70,6 +72,8 @@ public sealed class SupplierClient(HttpClient httpClient) : ISupplierClient
         {
             var path = $"/orders/by-client-reference/{Uri.EscapeDataString(clientReference)}" +
                        $"?experimentRunId={Uri.EscapeDataString(experimentRunId.ToString())}";
+            if (!string.IsNullOrWhiteSpace(faultCohort))
+                path += $"&faultCohort={Uri.EscapeDataString(faultCohort)}";
 
             using var response = await httpClient.GetAsync(path, timeoutCts.Token);
 
