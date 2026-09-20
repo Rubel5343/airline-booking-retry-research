@@ -66,6 +66,8 @@ jobs:
           TOTAL_REQUESTS: "8"
           VUS: "8"
           GIT_COMMIT: ${{ github.sha }}
+          PROTOCOL_VERSION: "v1.1-draft"
+          RUN_MODE: "validation"
         run: python3 scripts/validate_protocol_v11_matrix.py
 
       - name: Upload validation artifacts
