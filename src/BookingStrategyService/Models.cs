@@ -13,6 +13,7 @@ public sealed record BookingExperimentRequest(
     string Origin,
     string Destination,
     string Strategy,
+    string? FaultCohort = null,
     int BookingTimeoutMs = 3000,
     int DelayedRetryMs = 1000,
     int RetrieveAttempts = 3,
@@ -69,4 +70,5 @@ public sealed record SupplierCreateRequest(
     string LogicalBookingId,
     string ClientReference,
     string Origin,
-    string Destination);
+    string Destination,
+    string? FaultCohort);

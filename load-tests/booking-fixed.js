@@ -2,15 +2,16 @@ import http from 'k6/http';
 import { check } from 'k6';
 import exec from 'k6/execution';
 
+const totalRequests = Number(__ENV.TOTAL_REQUESTS || 500);
+const vus = Number(__ENV.VUS || 20);
+
 export const options = {
   scenarios: {
-    bookings: {
-      executor: 'constant-arrival-rate',
-      rate: Number(__ENV.RATE || 10),
-      timeUnit: '1s',
-      duration: __ENV.DURATION || '2m',
-      preAllocatedVUs: Number(__ENV.PRE_VUS || 50),
-      maxVUs: Number(__ENV.MAX_VUS || 500),
+    correctness: {
+      executor: 'shared-iterations',
+      vus,
+      iterations: totalRequests,
+      maxDuration: __ENV.MAX_DURATION || '10m',
     },
   },
 };
@@ -25,7 +26,9 @@ if (!runId) {
 }
 
 export default function () {
-  const id = `${faultCohort}-${exec.scenario.iterationInTest}`;
+  const sequence = exec.scenario.iterationInTest;
+  const id = `${faultCohort}-${sequence}`;
+
   const payload = JSON.stringify({
     experimentRunId: runId,
     logicalBookingId: `BKG-${id}`,
@@ -34,10 +37,10 @@ export default function () {
     destination: 'LHR',
     strategy,
     faultCohort,
-    bookingTimeoutMs: Number(__ENV.BOOKING_TIMEOUT_MS || 3000),
-    delayedRetryMs: Number(__ENV.DELAYED_RETRY_MS || 1000),
+    bookingTimeoutMs: Number(__ENV.BOOKING_TIMEOUT_MS || 300),
+    delayedRetryMs: Number(__ENV.DELAYED_RETRY_MS || 250),
     retrieveAttempts: Number(__ENV.RETRIEVE_ATTEMPTS || 3),
-    retrieveDelayMs: Number(__ENV.RETRIEVE_DELAY_MS || 1000),
+    retrieveDelayMs: Number(__ENV.RETRIEVE_DELAY_MS || 250),
   });
 
   const response = http.post(`${baseUrl}/bookings`, payload, {

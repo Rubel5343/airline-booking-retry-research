@@ -49,6 +49,9 @@ app.MapPost("/orders", async (
     ConfigHolder configHolder) =>
 {
     var config = configHolder.Value;
+    var faultKey = string.IsNullOrWhiteSpace(request.FaultCohort)
+        ? request.ExperimentRunId.ToString("N")
+        : request.FaultCohort;
     var attemptNo = await store.NextCreateAttemptAsync(
         request.ExperimentRunId,
         request.ClientReference,
@@ -60,7 +63,7 @@ app.MapPost("/orders", async (
             config.RandomSeed,
             0,
             config.ProcessingJitterMs,
-            request.ExperimentRunId.ToString("N"),
+            faultKey,
             request.ClientReference,
             attemptNo.ToString(),
             "processing-jitter");
@@ -69,7 +72,7 @@ app.MapPost("/orders", async (
 
     var decision = decider.UnitInterval(
         config.RandomSeed,
-        request.ExperimentRunId.ToString("N"),
+        faultKey,
         request.ClientReference,
         attemptNo.ToString(),
         "pre-create-outcome");
@@ -121,7 +124,7 @@ app.MapPost("/orders", async (
 
     var responseLost = decider.UnitInterval(
         config.RandomSeed,
-        request.ExperimentRunId.ToString("N"),
+        faultKey,
         request.ClientReference,
         attemptNo.ToString(),
         "response-loss") < config.ResponseLossProbability;
@@ -129,7 +132,7 @@ app.MapPost("/orders", async (
     var hiddenSuccess = !responseLost ||
         decider.UnitInterval(
             config.RandomSeed,
-            request.ExperimentRunId.ToString("N"),
+            faultKey,
             request.ClientReference,
             attemptNo.ToString(),
             "hidden-success") < config.HiddenSuccessProbabilityOnResponseLoss;
@@ -189,11 +192,15 @@ app.MapPost("/orders", async (
 app.MapGet("/orders/by-client-reference/{clientReference}", async (
     string clientReference,
     Guid experimentRunId,
+    string? faultCohort,
     SimulatorStore store,
     DeterministicDecider decider,
     ConfigHolder configHolder) =>
 {
     var config = configHolder.Value;
+    var faultKey = string.IsNullOrWhiteSpace(faultCohort)
+        ? experimentRunId.ToString("N")
+        : faultCohort;
     var retrieveAttemptNo = await store.NextRetrieveAttemptAsync(
         experimentRunId,
         clientReference,
@@ -201,7 +208,7 @@ app.MapGet("/orders/by-client-reference/{clientReference}", async (
 
     var fail = decider.UnitInterval(
         config.RandomSeed,
-        experimentRunId.ToString("N"),
+        faultKey,
         clientReference,
         retrieveAttemptNo.ToString(),
         "retrieve-failure") < config.RetrieveFailureProbability;

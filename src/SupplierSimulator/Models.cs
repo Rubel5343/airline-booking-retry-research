@@ -5,7 +5,8 @@ public sealed record CreateOrderRequest(
     string LogicalBookingId,
     string ClientReference,
     string Origin,
-    string Destination);
+    string Destination,
+    string? FaultCohort);
 
 public sealed record CreateOrderResponse(
     string SupplierOrderId,
