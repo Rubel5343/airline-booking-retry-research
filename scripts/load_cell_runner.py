@@ -38,6 +38,7 @@ rng.shuffle(strategy_order)
 
 results_dir = pathlib.Path(os.environ.get("RESULTS_DIR", "results/v11-load-validation"))
 results_dir.mkdir(parents=True, exist_ok=True)
+os.chmod(results_dir, 0o777)
 
 def request_json(method, url, payload=None):
     data = None
