@@ -21,7 +21,8 @@ public sealed class StrategyContext(
         Request.LogicalBookingId,
         Request.ClientReference,
         Request.Origin,
-        Request.Destination);
+        Request.Destination,
+        Request.FaultCohort);
 
     public BookingExecutionResult Result(
         string state,
@@ -74,6 +75,7 @@ public abstract class BookingRecoveryStrategyBase
         var result = await context.Supplier.RetrieveAsync(
             context.Request.ExperimentRunId,
             context.Request.ClientReference,
+            context.Request.FaultCohort,
             RetrieveTimeout(context),
             ct);
 
