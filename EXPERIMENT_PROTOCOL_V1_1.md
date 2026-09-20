@@ -343,7 +343,8 @@ Before creating `protocol-v1.1`:
 7. the retrieve-failure safety invariant passes an automated test;
 8. Stage-A reduced validation executes all A1–A4 conditions with a small non-paper N;
 9. Stage-B reduced validation executes all visibility levels;
-10. Stage-D reduced validation executes all retrieve-failure levels;
-11. final-data workflows are manual-dispatch only.
+10. Stage-C reduced validation executes 5, 20, and 50 RPS with separate warm-up and measurement runs and successfully captures completed/dropped iterations;
+11. Stage-D reduced validation executes all retrieve-failure levels;
+12. final-data workflows are manual-dispatch only.
 
 Any semantic change after v1.1 freeze requires v1.2 (or later) and re-collection of affected final evidence.
