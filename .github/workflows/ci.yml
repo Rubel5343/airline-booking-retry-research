@@ -59,10 +59,10 @@ jobs:
           exit 1
 
       - name: Normal smoke test
-        run: ./scripts/smoke-test.sh
+        run: bash scripts/smoke-test.sh
 
       - name: Ambiguous-timeout integration smoke
-        run: ./scripts/ambiguity-smoke-test.sh
+        run: bash scripts/ambiguity-smoke-test.sh
 
       - name: Compose logs on failure
         if: failure()
