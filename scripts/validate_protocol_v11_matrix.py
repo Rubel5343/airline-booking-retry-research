@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+
+base = os.environ.copy()
+base.setdefault("TOTAL_REQUESTS", "8")
+base.setdefault("VUS", "8")
+base.setdefault("BOOKING_TIMEOUT_MS", "300")
+base.setdefault("RESPONSE_HOLD_MS", "1500")
+base.setdefault("RETRIEVE_ENDPOINT_MS", "50")
+base.setdefault("REPETITION", "1")
+base.setdefault("GIT_COMMIT", os.environ.get("GITHUB_SHA", "unknown"))
+
+conditions = [
+    # Stage A
+    dict(CONDITION_ID="A1", PROCESSING_MS="200", RESPONSE_LOSS="0.05",
+         VISIBILITY_MS="0", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="250",
+         STRATEGY_LABELS="S1,S2,S3A,S3B3", SEED="71101"),
+    dict(CONDITION_ID="A2", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="0", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="250",
+         STRATEGY_LABELS="S1,S2,S3A,S3B3", SEED="71102"),
+    dict(CONDITION_ID="A3", PROCESSING_MS="330", RESPONSE_LOSS="0",
+         VISIBILITY_MS="0", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="250",
+         STRATEGY_LABELS="S1,S2,S3A,S3B3", SEED="71103"),
+    dict(CONDITION_ID="A4", PROCESSING_MS="500", RESPONSE_LOSS="0",
+         VISIBILITY_MS="0", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="250",
+         STRATEGY_LABELS="S1,S2,S3A,S3B3", SEED="71104"),
+
+    # Stage B
+    dict(CONDITION_ID="B-V0", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="0", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3A,S3B3,S3B5", SEED="71200"),
+    dict(CONDITION_ID="B-V1", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="300", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3A,S3B3,S3B5", SEED="71201"),
+    dict(CONDITION_ID="B-V2", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="600", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3A,S3B3,S3B5", SEED="71202"),
+    dict(CONDITION_ID="B-V4", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="1200", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3A,S3B3,S3B5", SEED="71204"),
+
+    # Stage D
+    dict(CONDITION_ID="D-F0", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="300", RETRIEVE_FAILURE="0", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3B3,S3B5", SEED="71300"),
+    dict(CONDITION_ID="D-F5", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="300", RETRIEVE_FAILURE="0.05", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3B3,S3B5", SEED="71305"),
+    dict(CONDITION_ID="D-F10", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="300", RETRIEVE_FAILURE="0.10", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3B3,S3B5", SEED="71310"),
+    dict(CONDITION_ID="D-F20", PROCESSING_MS="200", RESPONSE_LOSS="0.20",
+         VISIBILITY_MS="300", RETRIEVE_FAILURE="0.20", RETRIEVE_BACKOFF_MS="150",
+         STRATEGY_LABELS="S3B3,S3B5", SEED="71320"),
+]
+
+for i, condition in enumerate(conditions, start=1):
+    env = base.copy()
+    env.update(condition)
+    print(f"\n[{i}/{len(conditions)}] validating {condition['CONDITION_ID']}", flush=True)
+    subprocess.run(["python3", "scripts/fixed_cell_runner.py"], check=True, env=env)
+
+print("\nprotocol-v1.1 reduced matrix validation: PASS")
