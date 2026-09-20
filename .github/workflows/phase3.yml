@@ -22,8 +22,9 @@ jobs:
       - name: Static validation
         run: |
           bash -n scripts/*.sh
-          python3 -m py_compile scripts/repeated-pilot.py analysis/summarize_pilot.py analysis/model_sanity.py
+          python3 -m py_compile scripts/repeated-pilot.py analysis/summarize_pilot.py analysis/model_sanity.py analysis/power_planning.py
           python3 analysis/model_sanity.py
+          python3 analysis/power_planning.py
 
       - name: Restore and build
         run: |
@@ -48,6 +49,12 @@ jobs:
 
       - name: Ambiguity smoke gate
         run: bash scripts/ambiguity-smoke-test.sh
+
+      - name: Fixed-count pairing gate
+        run: bash scripts/fixed-pair-validation.sh
+
+      - name: Retrieve-failure safety gate
+        run: bash scripts/retrieve-failure-safety-test.sh
 
       - name: Repeated randomized pilot
         env:
