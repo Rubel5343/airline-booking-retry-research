@@ -1,6 +1,6 @@
 # Experiment Protocol v1.1
 
-> Status: **DRAFT AMENDMENT** to v1.0. No paper-grade data may be collected under v1.1 until the implementation-validation gates pass and the `protocol-v1.1` freeze reference is created.
+> Status: **FROZEN**. All v1.1 implementation-validation gates passed in GitHub Actions run `35509259749`. Paper-grade evidence must be collected only from the `protocol-v1.1` freeze reference created from the merged freeze commit.
 
 ## Why v1.1 exists
 
@@ -362,9 +362,9 @@ The BookingStrategyService exposes client-visible attempt/latency/call metrics o
 
 No final result may be collected from a commit that changes experimental semantics relative to the frozen protocol reference.
 
-## v1.1 freeze validation requirements
+## v1.1 freeze validation record
 
-Before creating `protocol-v1.1`:
+All freeze requirements below passed before the protocol was marked frozen. Validation run: `35509259749`.
 
 1. .NET restore/build passes;
 2. Docker/database/service smoke tests pass;
@@ -380,3 +380,12 @@ Before creating `protocol-v1.1`:
 12. final-data workflows are manual-dispatch only.
 
 Any semantic change after v1.1 freeze requires v1.2 (or later) and re-collection of affected final evidence.
+
+
+## Freeze provenance
+
+- Validation run: `35509259749`
+- Validation result: all protocol-v1.1 gates passed
+- Paper-grade workflow: manual dispatch only
+- Required paper-grade source ref: `protocol-v1.1`
+- Pilot and validation observations remain excluded from final evidence
