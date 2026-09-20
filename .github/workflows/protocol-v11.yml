@@ -70,12 +70,21 @@ jobs:
           RUN_MODE: "validation"
         run: python3 scripts/validate_protocol_v11_matrix.py
 
+      - name: Reduced Stage C load validation
+        env:
+          PROTOCOL_VERSION: "v1.1-draft"
+          RUN_MODE: "validation"
+          GIT_COMMIT: ${{ github.sha }}
+        run: python3 scripts/validate_protocol_v11_load.py
+
       - name: Upload validation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: protocol-v11-validation-${{ github.run_id }}
-          path: results/v11-validation/*.json
+          path: |
+            results/v11-validation/*.json
+            results/v11-load-validation/*.json
           if-no-files-found: warn
           retention-days: 30
 
