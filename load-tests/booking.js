@@ -11,6 +11,7 @@ export const options = {
       duration: __ENV.DURATION || '2m',
       preAllocatedVUs: Number(__ENV.PRE_VUS || 50),
       maxVUs: Number(__ENV.MAX_VUS || 500),
+      gracefulStop: __ENV.GRACEFUL_STOP || '30s',
     },
   },
 };
