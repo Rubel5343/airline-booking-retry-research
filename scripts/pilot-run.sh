@@ -32,7 +32,7 @@ wait_for() {
 create_run() {
   local strategy=$1
   local variant=$2
-  python3 - "$strategy" "$SEED" "$SCENARIO" "$RATE" "$DURATION" <<'PY'     | curl -fsS -X POST "$BOOKING/experiment-runs"         -H 'Content-Type: application/json'         --data-binary @-     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
+  python3 - "$strategy" "$variant" "$SEED" "$SCENARIO" "$RATE" "$DURATION" <<'PY'     | curl -fsS -X POST "$BOOKING/experiment-runs"         -H 'Content-Type: application/json'         --data-binary @-     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
 import json, sys
 print(json.dumps({
     "name": f"pilot-{sys.argv[2]}",
