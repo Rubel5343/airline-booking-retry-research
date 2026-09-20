@@ -7,7 +7,10 @@ SCENARIO=${SCENARIO:-configs/scenario-ambiguity-smoke.json}
 
 create_run() {
   local name=$1
-  curl -fsS -X POST "$BOOKING/experiment-runs"     -H 'Content-Type: application/json'     -d "{"name":"$name","randomSeed":12345}"     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
+  python3 - "$name" <<'PY'     | curl -fsS -X POST "$BOOKING/experiment-runs"         -H 'Content-Type: application/json'         --data-binary @-     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
+import json, sys
+print(json.dumps({"name": sys.argv[1], "randomSeed": 12345}))
+PY
 }
 
 book() {
@@ -17,7 +20,21 @@ book() {
   local strategy=$4
   local retrieves=$5
 
-  curl -fsS -X POST "$BOOKING/bookings"     -H 'Content-Type: application/json'     -d "{"experimentRunId":"$run_id","logicalBookingId":"$logical","clientReference":"$ref","origin":"DAC","destination":"LHR","strategy":"$strategy","bookingTimeoutMs":300,"delayedRetryMs":250,"retrieveAttempts":$retrieves,"retrieveDelayMs":250}"     >/dev/null
+  python3 - "$run_id" "$logical" "$ref" "$strategy" "$retrieves" <<'PY'     | curl -fsS -X POST "$BOOKING/bookings"         -H 'Content-Type: application/json'         --data-binary @- >/dev/null
+import json, sys
+print(json.dumps({
+    "experimentRunId": sys.argv[1],
+    "logicalBookingId": sys.argv[2],
+    "clientReference": sys.argv[3],
+    "origin": "DAC",
+    "destination": "LHR",
+    "strategy": sys.argv[4],
+    "bookingTimeoutMs": 300,
+    "delayedRetryMs": 250,
+    "retrieveAttempts": int(sys.argv[5]),
+    "retrieveDelayMs": 250
+}))
+PY
 }
 
 order_count() {
