@@ -36,9 +36,18 @@ rng = random.Random(seed)
 strategy_order = strategy_labels.copy()
 rng.shuffle(strategy_order)
 
+results_root = pathlib.Path("results")
+results_root.mkdir(parents=True, exist_ok=True)
+os.chmod(results_root, 0o777)
+
 results_dir = pathlib.Path(os.environ.get("RESULTS_DIR", "results/v11-load-validation"))
 results_dir.mkdir(parents=True, exist_ok=True)
 os.chmod(results_dir, 0o777)
+
+try:
+    results_dir.relative_to(results_root)
+except ValueError as exc:
+    raise SystemExit("RESULTS_DIR must be inside the repository results/ directory") from exc
 
 def request_json(method, url, payload=None):
     data = None
@@ -103,7 +112,9 @@ def run_k6(run_id, label, strategy, retrieves, cohort, duration, summary_path):
         "-e", f"PRE_VUS={pre_vus}",
         "-e", f"MAX_VUS={max_vus}",
         "-e", f"GRACEFUL_STOP={graceful_stop}",
-        "k6", "run", f"--summary-export=/results/{summary_path.name}", "/scripts/booking.js",
+        "k6", "run",
+        f"--summary-export=/results/{summary_path.relative_to(results_root).as_posix()}",
+        "/scripts/booking.js",
     ]
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
     time.sleep(0.6)
