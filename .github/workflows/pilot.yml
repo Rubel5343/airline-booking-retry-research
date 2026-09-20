@@ -1,6 +1,8 @@
 name: research-pilot
 
 on:
+  push:
+    branches: ["experiment/pilot"]
   workflow_dispatch:
     inputs:
       scenario:
@@ -36,7 +38,7 @@ jobs:
         id: scenario
         shell: bash
         run: |
-          case "${{ inputs.scenario }}" in
+          case "${{ inputs.scenario || 'baseline' }}" in
             baseline) echo "path=configs/scenario-baseline.json" >> "$GITHUB_OUTPUT" ;;
             visibility-delay) echo "path=configs/scenario-visibility-delay.json" >> "$GITHUB_OUTPUT" ;;
             retrieve-failure) echo "path=configs/scenario-retrieve-failure.json" >> "$GITHUB_OUTPUT" ;;
@@ -68,8 +70,8 @@ jobs:
       - name: Run pilot comparison
         env:
           SCENARIO: ${{ steps.scenario.outputs.path }}
-          RATE: ${{ inputs.rate }}
-          DURATION: ${{ inputs.duration }}
+          RATE: ${{ inputs.rate || '5' }}
+          DURATION: ${{ inputs.duration || '30s' }}
         run: bash scripts/pilot-run.sh
 
       - name: Upload pilot summaries
