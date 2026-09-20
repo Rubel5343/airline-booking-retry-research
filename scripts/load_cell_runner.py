@@ -208,6 +208,19 @@ SELECT COUNT(*) FILTER (WHERE c > 1) FROM gt;
         "k6SummaryFile": str(k6_path),
         "warmupRunId": warmup_id,
     }
+    evidence_dir = results_dir / "raw" / f"{condition}-r{repetition}-{label}-{run_id}"
+    subprocess.run([
+        "python3", "scripts/export_run_evidence.py",
+        "--run-id", run_id,
+        "--output-dir", str(evidence_dir),
+        "--protocol", protocol_version,
+        "--git-commit", git_commit,
+        "--condition-id", condition,
+        "--strategy-label", label,
+        "--repetition", str(repetition),
+    ], check=True, stdout=subprocess.DEVNULL)
+
+    output["evidenceDir"] = str(evidence_dir)
     out_path = results_dir / f"{condition}-r{repetition}-{label}-result.json"
     out_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
     manifest["runs"].append(output)
