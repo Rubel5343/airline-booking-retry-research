@@ -24,6 +24,8 @@ vus = int(os.environ.get("VUS", "8"))
 seed = int(os.environ.get("SEED", "71000"))
 repetition = int(os.environ.get("REPETITION", "1"))
 git_commit = os.environ.get("GIT_COMMIT", os.environ.get("GITHUB_SHA", "unknown"))
+protocol_version = os.environ.get("PROTOCOL_VERSION", "v1.1-draft")
+run_mode = os.environ.get("RUN_MODE", "validation")
 strategy_labels = [x.strip() for x in os.environ["STRATEGY_LABELS"].split(",") if x.strip()]
 
 strategy_map = {
@@ -69,7 +71,8 @@ config = {
 request_json("PUT", f"{SUPPLIER}/admin/config", config)
 
 manifest = {
-    "protocol": "v1.1-draft-validation",
+    "protocol": protocol_version,
+    "runMode": run_mode,
     "conditionId": condition,
     "repetition": repetition,
     "seed": seed,
@@ -94,7 +97,8 @@ for label in strategy_labels:
         "randomSeed": seed,
         "gitCommit": git_commit,
         "config": {
-            "protocol": "v1.1-draft-validation",
+            "protocol": protocol_version,
+            "runMode": run_mode,
             "conditionId": condition,
             "repetition": repetition,
             "seed": seed,
