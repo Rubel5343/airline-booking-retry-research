@@ -78,7 +78,7 @@ Base client timeout:
 
 ### Stage A — Core ambiguous completion
 
-Purpose: answer RQ1/RQ2 and establish the reliability-overhead trade-off.
+Purpose: answer RQ1/RQ2 and establish the reliability-overhead trade-off without crossing redundant ambiguity mechanisms.
 
 Strategies:
 
@@ -87,18 +87,14 @@ Strategies:
 - S3-A
 - S3-B3
 
-Factors:
+Conditions:
 
-**Supplier processing / client-timeout ratio**
-
-- 0.67T
-- 1.00T
-- 1.67T
-
-**Response-loss probability**
-
-- 5%
-- 20%
+| Condition | Processing / timeout | Response loss | Interpretation |
+|---|---:|---:|---|
+| A1 | 0.67T | 5% | low-rate lost-response ambiguity |
+| A2 | 0.67T | 20% | higher-rate lost-response ambiguity |
+| A3 | 1.00T | 0% | boundary/near-timeout completion ambiguity |
+| A4 | 1.67T | 0% | slow-completion ambiguity |
 
 Fixed:
 
@@ -108,9 +104,11 @@ Fixed:
 - S2 backoff: 0.83T
 - S3 retrieve spacing: 0.83T
 
+Response-loss probability is intentionally not crossed with processing ratios above the client timeout because, once processing itself exceeds the deadline, client-side ambiguity occurs even when the response is not intentionally lost. Crossing those factors would add redundant cells and complicate interpretation.
+
 Design size:
 
-6 condition cells × 4 strategies × 10 repetitions × 500 bookings.
+4 condition cells × 4 strategies × 10 repetitions × 500 bookings.
 
 ### Stage B — Retrieval visibility delay
 
@@ -146,7 +144,7 @@ Outcomes emphasize duplicate rate, premature retry, resolution latency, and supp
 
 Purpose: answer the load component of RQ5.
 
-This is the only stage that uses open-model constant-arrival-rate workloads.
+This is the only stage that uses open-model constant-arrival-rate workloads. The selected load scenario isolates slow-completion ambiguity; intentional response loss is set to zero so load is not confounded with a second ambiguity mechanism.
 
 Strategies:
 
@@ -157,8 +155,7 @@ Strategies:
 Fixed scenario:
 
 - processing delay: 1.67T
-- response-loss probability: 10%
-- hidden success: 100%
+- response-loss probability: 0%
 - visibility delay: 0
 
 Arrival rates:
