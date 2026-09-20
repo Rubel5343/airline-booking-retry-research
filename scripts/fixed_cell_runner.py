@@ -152,19 +152,42 @@ FROM gt;
         "psql", "-U", "research", "-d", "airline_research", "-Atc", sql
     ], text=True).strip()
     sql_duplicates = int(raw or "0")
-    api_duplicates = int(summary["duplicateLogicalBookings"])
-    if sql_duplicates != api_duplicates:
+
+    reconciliation_sql = f"""
+SELECT COUNT(*)
+FROM (
+  SELECT logical_booking_id
+  FROM simulator.supplier_orders
+  WHERE experiment_run_id = '{run_id}'::uuid
+  GROUP BY logical_booking_id
+  HAVING COUNT(DISTINCT supplier_order_id) > 1
+) d;
+"""
+    raw2 = subprocess.check_output([
+        "docker", "compose", "exec", "-T", "postgres",
+        "psql", "-U", "research", "-d", "airline_research", "-Atc", reconciliation_sql
+    ], text=True).strip()
+    reconciled_duplicates = int(raw2 or "0")
+
+    if sql_duplicates != reconciled_duplicates:
         raise SystemExit(
-            f"{condition}/{label}: API duplicates={api_duplicates} SQL duplicates={sql_duplicates}"
+            f"{condition}/{label}: ground-truth reconciliation mismatch "
+            f"canonical={sql_duplicates} independent={reconciled_duplicates}"
         )
+
+    duplicate_rate_pct = 100.0 * sql_duplicates / total_requests if total_requests else 0.0
 
     output = {
         "runId": run_id,
         "conditionId": condition,
         "label": label,
         "faultCohort": fault_cohort,
-        "summary": summary,
-        "sqlDuplicateLogicalBookings": sql_duplicates,
+        "clientSummary": summary,
+        "groundTruth": {
+            "duplicateLogicalBookings": sql_duplicates,
+            "duplicateRatePct": duplicate_rate_pct,
+            "reconciledDuplicateLogicalBookings": reconciled_duplicates
+        },
     }
     out_path = results_dir / f"{condition}-r{repetition}-{label}-{run_id}.json"
     out_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
@@ -178,7 +201,7 @@ FROM gt;
     })
     print(
         f"{condition} {label}: N={summary['logicalBookings']} "
-        f"duplicates={api_duplicates} unknown={summary['unresolvedBookings']}"
+        f"duplicates={sql_duplicates} unknown={summary['unresolvedBookings']}"
     )
 
 manifest_path = results_dir / f"{condition}-r{repetition}-manifest.json"
