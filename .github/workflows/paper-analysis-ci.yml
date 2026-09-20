@@ -1,0 +1,18 @@
+name: paper-analysis-ci
+
+on:
+  push:
+    branches: ["analysis/paper-results"]
+  pull_request:
+    paths:
+      - "analysis/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile
+        run: python3 -m py_compile analysis/paper_results.py analysis/test_paper_results.py
+      - name: Synthetic evidence test
+        run: python3 analysis/test_paper_results.py
