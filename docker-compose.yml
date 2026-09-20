@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: airline_research
+      POSTGRES_USER: research
+      POSTGRES_PASSWORD: research
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U research -d airline_research"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    cpus: 1.0
+    mem_limit: 1g
+
+  supplier-simulator:
+    build:
+      context: .
+      dockerfile: src/SupplierSimulator/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8081
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=airline_research;Username=research;Password=research
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 1.0
+    mem_limit: 512m
+
+  booking-strategy:
+    build:
+      context: .
+      dockerfile: src/BookingStrategyService/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=airline_research;Username=research;Password=research
+      Supplier__BaseUrl: http://supplier-simulator:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      supplier-simulator:
+        condition: service_started
+    cpus: 1.0
+    mem_limit: 512m
+
+  k6:
+    image: grafana/k6:2.2.0
+    profiles: ["tools"]
+    volumes:
+      - ./load-tests:/scripts:ro
+    entrypoint: ["k6"]
+    depends_on:
+      booking-strategy:
+        condition: service_started
+
+volumes:
+  postgres-data:
