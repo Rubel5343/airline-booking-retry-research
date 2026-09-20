@@ -58,7 +58,7 @@ for repetition in range(1, 11):
         "DELAYED_RETRY_MS": "250",
         "RETRIEVE_ENDPOINT_MS": "50",
         "RESPONSE_HOLD_MS": "1500",
-        "PROTOCOL_VERSION": "v1.1",
+        "PROTOCOL_VERSION": "v1.1.1",
         "RUN_MODE": "paper-grade",
         "RESULTS_DIR": f"results/final/correctness/{condition_id}",
     })

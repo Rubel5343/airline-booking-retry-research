@@ -274,6 +274,19 @@ WHERE a.experiment_run_id = '{run_id}'::uuid
             "safetyViolationsAfterInconclusiveRetrieve": safety_violations
         },
     }
+    evidence_dir = results_dir / "raw" / f"{condition}-r{repetition}-{label}-{run_id}"
+    subprocess.run([
+        "python3", "scripts/export_run_evidence.py",
+        "--run-id", run_id,
+        "--output-dir", str(evidence_dir),
+        "--protocol", protocol_version,
+        "--git-commit", git_commit,
+        "--condition-id", condition,
+        "--strategy-label", label,
+        "--repetition", str(repetition),
+    ], check=True, stdout=subprocess.DEVNULL)
+
+    output["evidenceDir"] = str(evidence_dir)
     out_path = results_dir / f"{condition}-r{repetition}-{label}-{run_id}.json"
     out_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
 
@@ -283,6 +296,7 @@ WHERE a.experiment_run_id = '{run_id}'::uuid
         "retrieveAttempts": retrieve_attempts,
         "runId": run_id,
         "resultFile": str(out_path),
+        "evidenceDir": str(evidence_dir),
     })
     print(
         f"{condition} {label}: N={summary['logicalBookings']} "

@@ -1,10 +1,10 @@
-name: paper-grade-data-v1.1
+name: paper-grade-data-v1.1.1
 
 on:
   workflow_dispatch:
     inputs:
       condition:
-        description: "Frozen v1.1 condition to collect"
+        description: "Frozen v1.1.1 condition to collect"
         required: true
         type: choice
         options:
@@ -24,25 +24,25 @@ on:
           - C-R20
           - C-R50
       confirmation:
-        description: "Type RUN-PAPER-GRADE-V1.1"
+        description: "Type RUN-PAPER-GRADE-V1.1.1"
         required: true
         type: string
 
 concurrency:
-  group: paper-grade-v11-${{ inputs.condition }}
+  group: paper-grade-v111-${{ inputs.condition }}
   cancel-in-progress: false
 
 jobs:
   collect:
-    if: ${{ inputs.confirmation == 'RUN-PAPER-GRADE-V1.1' }}
+    if: ${{ inputs.confirmation == 'RUN-PAPER-GRADE-V1.1.1' }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
     steps:
-      - name: Checkout frozen protocol ref
+      - name: Checkout frozen evidence ref
         uses: actions/checkout@v4
         with:
-          ref: protocol-v1.1
+          ref: protocol-v1.1.1
           fetch-depth: 1
 
       - name: Record frozen commit
@@ -51,7 +51,7 @@ jobs:
         run: |
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "Frozen commit: $(git rev-parse HEAD)"
-          grep -q 'Status: \*\*FROZEN\*\*' EXPERIMENT_PROTOCOL_V1_1.md
+          grep -q 'Status: \*\*FROZEN\*\*' EXPERIMENT_PROTOCOL_V1_1_1.md
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -96,6 +96,16 @@ jobs:
           GIT_COMMIT: ${{ steps.freeze.outputs.sha }}
         run: python3 scripts/run_final_load_condition.py
 
+      - name: Verify evidence manifests exist
+        shell: bash
+        run: |
+          count=$(find results/final -name evidence-manifest.json -type f | wc -l)
+          if [ "$count" -le 0 ]; then
+            echo "No raw evidence manifests found" >&2
+            exit 1
+          fi
+          echo "Evidence manifests: $count"
+
       - name: Write collection manifest
         if: always()
         shell: bash
@@ -105,8 +115,8 @@ jobs:
           {
             "workflowRunId": "${{ github.run_id }}",
             "condition": "${{ inputs.condition }}",
-            "protocol": "v1.1",
-            "frozenRef": "protocol-v1.1",
+            "protocol": "v1.1.1",
+            "frozenRef": "protocol-v1.1.1",
             "frozenCommit": "${{ steps.freeze.outputs.sha }}",
             "repository": "${{ github.repository }}"
           }
@@ -116,8 +126,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: paper-grade-v11-${{ inputs.condition }}-${{ github.run_id }}
-          path: results/final/**/*.json
+          name: paper-grade-v111-${{ inputs.condition }}-${{ github.run_id }}
+          path: results/final/**/*
           if-no-files-found: error
           retention-days: 90
 
