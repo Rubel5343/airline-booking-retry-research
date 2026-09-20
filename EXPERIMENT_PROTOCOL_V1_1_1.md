@@ -1,6 +1,6 @@
 # Experiment Protocol v1.1.1 — Evidence Capture Patch
 
-> Status: **DRAFT PATCH**. This patch inherits all experimental semantics, causal factors, strategy definitions, timing parameters, seed schedules, sample sizes, and statistical plans from frozen protocol v1.1. It changes evidence capture only. No paper-grade data has been collected before this patch.
+> Status: **FROZEN**. This patch inherits all experimental semantics, causal factors, strategy definitions, timing parameters, seed schedules, sample sizes, and statistical plans from frozen protocol v1.1. It changes evidence capture only. No paper-grade data was collected before this patch. Full evidence validation passed in GitHub Actions run `35510015232`.
 
 ## Parent protocol
 
@@ -118,3 +118,12 @@ Before creating `protocol-v1.1.1`:
 9. final artifact upload includes raw JSONL evidence as well as summary JSON.
 
 Pilot and validation observations remain excluded from paper evidence.
+
+
+## Patch validation provenance
+
+- Validation run: `35510015232`
+- Raw evidence integrity: PASS
+- Evidence manifests validated: 45
+- Validation booking-attempt rows archived: 1,418
+- Paper-grade evidence source ref: `protocol-v1.1.1`
