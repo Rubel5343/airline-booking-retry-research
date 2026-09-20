@@ -31,7 +31,18 @@ wait_for() {
 
 create_run() {
   local strategy=$1
-  curl -fsS -X POST "$BOOKING/experiment-runs"     -H 'Content-Type: application/json'     -d "{"name":"pilot-${strategy}","randomSeed":${SEED},"config":{"scenario":"${SCENARIO}","rate":${RATE},"duration":"${DURATION}"}}"     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
+  python3 - "$strategy" "$SEED" "$SCENARIO" "$RATE" "$DURATION" <<'PY'     | curl -fsS -X POST "$BOOKING/experiment-runs"         -H 'Content-Type: application/json'         --data-binary @-     | python3 -c 'import json,sys; print(json.load(sys.stdin)["runId"])'
+import json, sys
+print(json.dumps({
+    "name": f"pilot-{sys.argv[1]}",
+    "randomSeed": int(sys.argv[2]),
+    "config": {
+        "scenario": sys.argv[3],
+        "rate": int(sys.argv[4]),
+        "duration": sys.argv[5]
+    }
+}))
+PY
 }
 
 run_strategy() {
