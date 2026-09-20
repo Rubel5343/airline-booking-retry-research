@@ -326,6 +326,8 @@ Every paper-grade run records:
 - experiment run IDs
 - raw ground-truth export or reproducible SQL snapshot
 
+The BookingStrategyService exposes client-visible attempt/latency/call metrics only. Duplicate-booking ground truth is computed externally from the simulator schema after a run; the recovery strategy code and booking-service summary path have no simulator-schema access.
+
 No final result may be collected from a commit that changes experimental semantics relative to the frozen protocol reference.
 
 ## v1.1 freeze validation requirements
@@ -337,7 +339,7 @@ Before creating `protocol-v1.1`:
 3. fixed-count correctness produces exactly the requested N for each paired strategy;
 4. first-create deterministic fault outcomes match across strategies sharing a fault cohort;
 5. no strategy can read simulator ground-truth tables or APIs;
-6. API summary duplicate counts reconcile exactly with raw SQL ground truth;
+6. external duplicate metrics reconcile across two independent canonical SQL formulations, and BookingStrategyService contains no simulator-schema/ground-truth access;
 7. the retrieve-failure safety invariant passes an automated test;
 8. Stage-A reduced validation executes all A1–A4 conditions with a small non-paper N;
 9. Stage-B reduced validation executes all visibility levels;
