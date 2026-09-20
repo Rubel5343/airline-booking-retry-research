@@ -20,7 +20,7 @@ A logical booking is duplicate-positive when ground truth contains more than one
 
 ## Secondary outcomes
 
-- premature retry rate
+- premature/unsafe retry rate
 - UNKNOWN/unresolved rate
 - recovery success rate
 - resolution latency: median, IQR, P95, P99
@@ -28,6 +28,14 @@ A logical booking is duplicate-positive when ground truth contains more than one
 - create calls per logical booking
 - retrieve calls per logical booking
 - achieved versus requested arrival rate in the load stage
+
+### Frozen secondary-metric definitions
+
+**Premature/unsafe retry:** a logical booking for which a second `OrderCreate` was sent and simulator ground truth later shows that create attempt #1 produced a supplier order. The premature-retry rate uses all logical bookings that issued a second `OrderCreate` as the denominator. This definition covers both an already-created original order and an original create that was still in flight when the retry was sent.
+
+**Recovery success:** among attempts whose first create outcome was client-visible `AMBIGUOUS`, the proportion reaching final `SUCCESS` without a second supplier order.
+
+**Safety violation after inconclusive retrieve:** any attempt containing `RETRIEVE_UNKNOWN` followed later by `CONTROLLED_RETRY_AFTER_NOT_FOUND` or a second `ORDER_CREATE_SENT`. The expected count is zero.
 
 ## Strategies
 
@@ -70,6 +78,30 @@ Each correctness cell therefore uses **500 logical bookings per strategy per rep
 Correctness stages use **10 independent deterministic seeds per condition**, yielding 5,000 logical booking observations per strategy/condition while preserving run-level replication.
 
 The simple power calculation is a planning lower bound, not the final inferential model.
+
+## Frozen seed schedule
+
+Each condition has a disjoint deterministic seed range. Repetition numbers are 1–10 for correctness stages and 1–5 for load conditions.
+
+| Condition | Seeds |
+|---|---|
+| A1 | 81001–81010 |
+| A2 | 81101–81110 |
+| A3 | 81201–81210 |
+| A4 | 81301–81310 |
+| B-V0 | 82001–82010 |
+| B-V1 | 82101–82110 |
+| B-V2 | 82201–82210 |
+| B-V4 | 82301–82310 |
+| D-F0 | 83001–83010 |
+| D-F5 | 83101–83110 |
+| D-F10 | 83201–83210 |
+| D-F20 | 83301–83310 |
+| C-R5 | 84001–84005 |
+| C-R20 | 84101–84105 |
+| C-R50 | 84201–84205 |
+
+Strategy execution order is shuffled deterministically with that condition/repetition seed.
 
 ## Global execution controls
 
