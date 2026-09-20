@@ -1,0 +1,92 @@
+name: research-pilot
+
+on:
+  push:
+    branches: ["experiment/pilot"]
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Pilot scenario
+        required: true
+        default: baseline
+        type: choice
+        options:
+          - baseline
+          - visibility-delay
+          - retrieve-failure
+      rate:
+        description: Logical booking arrival rate (RPS)
+        required: true
+        default: "5"
+        type: string
+      duration:
+        description: Duration per strategy
+        required: true
+        default: "30s"
+        type: string
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve scenario
+        id: scenario
+        shell: bash
+        run: |
+          case "${{ inputs.scenario || 'baseline' }}" in
+            baseline) echo "path=configs/scenario-baseline.json" >> "$GITHUB_OUTPUT" ;;
+            visibility-delay) echo "path=configs/scenario-visibility-delay.json" >> "$GITHUB_OUTPUT" ;;
+            retrieve-failure) echo "path=configs/scenario-retrieve-failure.json" >> "$GITHUB_OUTPUT" ;;
+            *) exit 2 ;;
+          esac
+
+      - name: Model sanity
+        run: python3 analysis/model_sanity.py
+
+      - name: Build and start stack
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name: Wait for services
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8080/health >/dev/null && curl -fsS http://localhost:8081/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs
+          exit 1
+
+      - name: Ambiguity smoke gate
+        run: bash scripts/ambiguity-smoke-test.sh
+
+      - name: Run pilot comparison
+        env:
+          SCENARIO: ${{ steps.scenario.outputs.path }}
+          RATE: ${{ inputs.rate || '5' }}
+          DURATION: ${{ inputs.duration || '30s' }}
+        run: bash scripts/pilot-run.sh
+
+      - name: Upload pilot summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-summaries-${{ github.run_id }}
+          path: results/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Shutdown
+        if: always()
+        run: docker compose down -v
